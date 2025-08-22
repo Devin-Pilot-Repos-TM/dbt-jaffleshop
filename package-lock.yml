@@ -4,7 +4,8 @@ packages:
   revision: |
     014af559efd9dd1fa6551cb348fcc6d4def9a1e7
   __unrendered__:
-    __unrendered__: {}
+    __unrendered__:
+      __unrendered__: {}
 - package: godatadriven/dbt_date
   name: dbt_date
   version: 0.10.0
