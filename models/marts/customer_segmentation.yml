@@ -1,0 +1,130 @@
+models:
+  - name: customer_segmentation
+    description: Customer segmentation analytics mart providing RFM analysis, customer lifetime value tiers, behavioral segments, and churn prediction models. One row per customer with comprehensive segmentation metrics.
+    columns:
+      - name: customer_id
+        description: The unique key of the customer segmentation mart.
+        data_tests:
+          - not_null
+          - unique
+      - name: customer_name
+        description: Customer's full name.
+      - name: customer_type
+        description: Basic customer type (new or returning).
+      - name: recency_score
+        description: RFM recency score (1-5, 5 = most recent).
+      - name: frequency_quintile
+        description: RFM frequency quintile (1-5, 5 = most frequent).
+      - name: monetary_quintile
+        description: RFM monetary quintile (1-5, 5 = highest spend).
+      - name: rfm_score
+        description: Combined RFM score (average of R, F, M scores).
+      - name: rfm_segment
+        description: RFM-based customer segment (Champions, Loyal Customers, etc.).
+      - name: clv_tier
+        description: Customer lifetime value tier (High/Medium/Low/Minimal Value).
+      - name: product_preference
+        description: Product preference based on order history (Food/Drink/Balanced Focused).
+      - name: variety_preference
+        description: Product variety preference (Variety Seeker, Moderate Variety, Consistent Buyer).
+      - name: churn_risk
+        description: Churn risk assessment (Active, Low/Medium/High Risk).
+      - name: retention_action
+        description: Recommended retention action (Maintain, Monitor Closely, Immediate Action).
+
+semantic_models:
+  - name: customer_segmentation
+    defaults:
+      agg_time_dimension: first_ordered_at
+    description: |
+      Customer segmentation table providing comprehensive customer analytics including RFM analysis, behavioral segments, and churn prediction.
+    model: ref('customer_segmentation')
+    entities:
+      - name: customer
+        type: primary
+        expr: customer_id
+    dimensions:
+      - name: customer_name
+        type: categorical
+      - name: customer_type
+        type: categorical
+      - name: rfm_segment
+        type: categorical
+      - name: clv_tier
+        type: categorical
+      - name: product_preference
+        type: categorical
+      - name: variety_preference
+        type: categorical
+      - name: churn_risk
+        type: categorical
+      - name: retention_action
+        type: categorical
+      - name: first_ordered_at
+        type: time
+        type_params:
+          time_granularity: day
+      - name: last_ordered_at
+        type: time
+        type_params:
+          time_granularity: day
+    measures:
+      - name: customers
+        description: Count of unique customers
+        agg: count_distinct
+        expr: customer_id
+      - name: avg_rfm_score
+        description: Average RFM score across customers
+        agg: avg
+        expr: rfm_score
+      - name: avg_lifetime_spend
+        description: Average customer lifetime spend
+        agg: avg
+        expr: lifetime_spend
+      - name: avg_lifetime_orders
+        description: Average customer lifetime orders
+        agg: avg
+        expr: count_lifetime_orders
+
+metrics:
+  - name: customer_segments
+    description: Count of customers by segment
+    label: Customer Segments
+    type: simple
+    type_params:
+      measure: customers
+  - name: avg_customer_rfm_score
+    description: Average RFM score across all customers
+    label: Average RFM Score
+    type: simple
+    type_params:
+      measure: avg_rfm_score
+  - name: avg_customer_lifetime_value
+    description: Average customer lifetime spend
+    label: Average Customer Lifetime Value
+    type: simple
+    type_params:
+      measure: avg_lifetime_spend
+  - name: high_value_customers
+    description: Count of high-value customers
+    label: High Value Customers
+    type: simple
+    type_params:
+      measure: customers
+    filter: |
+      {{ Dimension('customer__clv_tier') }} = 'High Value'
+
+saved_queries:
+  - name: customer_segmentation_metrics
+    query_params:
+      metrics:
+        - customer_segments
+        - avg_customer_rfm_score
+        - avg_customer_lifetime_value
+        - high_value_customers
+      group_by:
+        - Entity('customer')
+    exports:
+      - name: customer_segmentation_metrics
+        config:
+          export_as: table
