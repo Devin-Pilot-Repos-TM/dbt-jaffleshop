@@ -1,0 +1,122 @@
+models:
+  - name: time_analytics
+    description: Time-based analytics mart providing daily, weekly, monthly aggregations, cohort analysis, and seasonal trend analysis. One row per day with comprehensive time-series metrics.
+    columns:
+      - name: date_day
+        description: The date for this row of time analytics.
+        data_tests:
+          - not_null
+          - unique
+      - name: daily_orders
+        description: Number of orders placed on this date.
+      - name: daily_revenue
+        description: Total revenue generated on this date.
+      - name: daily_profit
+        description: Total profit generated on this date.
+      - name: daily_unique_customers
+        description: Number of unique customers who placed orders on this date.
+      - name: daily_avg_order_value
+        description: Average order value for orders placed on this date.
+      - name: week_start
+        description: Start date of the week containing this date.
+      - name: month_start
+        description: Start date of the month containing this date.
+      - name: year
+        description: Year of this date.
+      - name: month
+        description: Month number of this date.
+      - name: quarter
+        description: Quarter number of this date.
+      - name: day_of_week
+        description: Day of week number (1=Sunday, 7=Saturday).
+
+semantic_models:
+  - name: time_analytics
+    defaults:
+      agg_time_dimension: date_day
+    description: |
+      Time-based analytics table providing comprehensive daily metrics for trend analysis and forecasting.
+    model: ref('time_analytics')
+    entities:
+      - name: date
+        type: primary
+        expr: date_day
+    dimensions:
+      - name: date_day
+        type: time
+        type_params:
+          time_granularity: day
+      - name: week_start
+        type: time
+        type_params:
+          time_granularity: week
+      - name: month_start
+        type: time
+        type_params:
+          time_granularity: month
+      - name: year
+        type: categorical
+      - name: month
+        type: categorical
+      - name: quarter
+        type: categorical
+      - name: day_of_week
+        type: categorical
+    measures:
+      - name: daily_orders
+        description: Sum of daily orders
+        agg: sum
+      - name: daily_revenue
+        description: Sum of daily revenue
+        agg: sum
+      - name: daily_profit
+        description: Sum of daily profit
+        agg: sum
+      - name: daily_unique_customers
+        description: Sum of daily unique customers
+        agg: sum
+      - name: avg_daily_order_value
+        description: Average of daily average order values
+        agg: avg
+        expr: daily_avg_order_value
+
+metrics:
+  - name: total_daily_orders
+    description: Total daily orders across time periods
+    label: Total Daily Orders
+    type: simple
+    type_params:
+      measure: daily_orders
+  - name: total_daily_revenue
+    description: Total daily revenue across time periods
+    label: Total Daily Revenue
+    type: simple
+    type_params:
+      measure: daily_revenue
+  - name: total_daily_profit
+    description: Total daily profit across time periods
+    label: Total Daily Profit
+    type: simple
+    type_params:
+      measure: daily_profit
+  - name: avg_daily_customers
+    description: Average daily unique customers
+    label: Average Daily Customers
+    type: simple
+    type_params:
+      measure: daily_unique_customers
+
+saved_queries:
+  - name: time_analytics_metrics
+    query_params:
+      metrics:
+        - total_daily_orders
+        - total_daily_revenue
+        - total_daily_profit
+        - avg_daily_customers
+      group_by:
+        - TimeDimension('metric_time', 'month')
+    exports:
+      - name: time_analytics_metrics
+        config:
+          export_as: table
